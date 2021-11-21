@@ -1,0 +1,24 @@
+{
+    "id": "orderWizardSchematic",
+    "title": "Material Stepper Order",
+    "type": "object",
+    "properties": {
+        "name": {
+            "type": "string",
+            "description": "The name of component"
+        },
+        "spec": {
+            "type": "string",
+            "description": "Specifies if a spec file  is generated",
+            "default": "true"
+        },
+        "path": {
+            "path": "string",
+            "description": "Specifies the path to create the Order Wizard under",
+            "default": ""
+        }
+    },
+    "required": [
+        "name"
+    ]
+}
