@@ -16,6 +16,12 @@
             "path": "string",
             "description": "Specifies the path to create the Order Wizard under",
             "default": ""
+        },
+        "project": {
+            "type": "string",
+            "description": "Specifies the project to run schematic in",
+            "default": "defaultProject"
+            
         }
     },
     "required": [
