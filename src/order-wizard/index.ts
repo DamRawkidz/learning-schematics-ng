@@ -11,14 +11,15 @@ import {
   SchematicsException,
   template,
   Tree,
-  url
+  url,
+  TaskId
 } from '@angular-devkit/schematics';
 import {  normalize, strings } from '@angular-devkit/core';
 import * as ts from 'typescript';
-import { NodePackageInstallTask } from '@angular-devkit/schematics/tasks';
+import { NodePackageInstallTask,RunSchematicTask } from '@angular-devkit/schematics/tasks';
 import { NodePackageTaskOptions } from '@angular-devkit/schematics/tasks/package-manager/options';
 
-
+let materialTaskId: TaskId 
 // You don't have to export the function as default. You can also have more than one rule factory
 // per file.
 export function orderWizard(_options: any): Rule {
@@ -40,10 +41,13 @@ export function orderWizard(_options: any): Rule {
     const templateRule = mergeWith(newTree,MergeStrategy.Default)
     const updateModuleRule = updateRootModule(_options, workspace)
     const installMaterialRule = installMaterial()
+    const materialRule = addMaterial()
+
     const chainedRule = chain([
       templateRule,
       updateModuleRule,
-      installMaterialRule
+      installMaterialRule,
+      materialRule
     ])
     return chainedRule(tree, _context);
   };
@@ -85,6 +89,7 @@ function updateRootModule(_option: any,workspace: any) {
       const moduleFiles = getAsSourceFile(tree,rootModulePath)
       const lastImportEndPos  = findlastImportEndPos(moduleFiles)
       const importArrayEndPos = findImportArray(moduleFiles)
+
 
       const rec = tree.beginUpdate(rootModulePath)
       rec.insertLeft(lastImportEndPos + 1 ,importContent)
@@ -170,9 +175,24 @@ function installMaterial() {
           const options = <NodePackageTaskOptions>{
               packageName: materialDepName
           };
-          _context.addTask(new NodePackageInstallTask(options));
+          materialTaskId =  _context.addTask(new NodePackageInstallTask(options));
           _context.logger.info('Installing Angular Material');
       }
       return tree;
   };
+}
+
+function addMaterial(): Rule {
+  return (tree: Tree, _context: SchematicContext) => {
+      const option = {
+        theme: 'indigo-pink',
+        gestures: true,
+        animation: true
+      }
+
+
+      _context.addTask(new RunSchematicTask(`@angular/material`,'ng-add', option),[materialTaskId])
+      _context.logger.info('Configuring Angular Material')
+    return tree
+  }
 }
