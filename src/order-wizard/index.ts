@@ -14,6 +14,7 @@ import {
   url
 } from '@angular-devkit/schematics';
 import {  normalize, strings } from '@angular-devkit/core';
+import * as ts from 'typescript';
 
 
 // You don't have to export the function as default. You can also have more than one rule factory
@@ -71,13 +72,67 @@ function updateRootModule(_option: any,workspace: any) {
       const moduleName = strings.dasherize(_option.name)
       const exportModuleName = strings.classify(_option.name)
       const modulePath = strings.dasherize(_option.path)
-      const rootModule = `${project.root}/${project.sourceRoot}/${project.prefix}/${project.prefix}.module.ts`;
+      const rootModulePath = `${project.root}/${project.sourceRoot}/${project.prefix}/${project.prefix}.module.ts`;
       const importContent = `import { ${exportModuleName}Module } from './${modulePath}/${moduleName}/${moduleName}.module';`
 
-      const rec = tree.beginUpdate(rootModule)
-      rec.insertLeft(0 ,importContent)
+      const moduleFiles = getAsSourceFile(tree,rootModulePath)
+      const lastImportEndPos  = findlastImportEndPos(moduleFiles)
+      const importArrayEndPos = findImportArray(moduleFiles)
+
+      const rec = tree.beginUpdate(rootModulePath)
+      rec.insertLeft(lastImportEndPos + 1 ,importContent)
+      rec.insertLeft(importArrayEndPos - 1 ,`, ${exportModuleName}Module`)
       tree.commitUpdate(rec)
 
       return tree
   }
+}
+
+function getAsSourceFile(tree: Tree,path: string): ts.SourceFile {
+  const file = tree.read(path);
+  if(!file){
+    throw new SchematicsException(`${path} not found`)
+  }
+
+  return ts.createSourceFile(
+    path,
+    file.toString(),
+    ts.ScriptTarget.Latest,
+    true
+  )
+}
+
+function findlastImportEndPos(file: ts.SourceFile): number {
+  let pos: number = 0;
+  file.forEachChild((child: ts.Node) => {
+    if(child.kind === ts.SyntaxKind.ImportDeclaration){
+        pos = child.end
+    }
+  })
+
+  return pos;
+}
+
+function findImportArray(file: ts.SourceFile): number {
+  let pos: number = 0;
+
+  file.forEachChild((node: ts.Node) => {
+    if(node.kind === ts.SyntaxKind.ClassDeclaration){
+        node.forEachChild((classChild: ts.Node) => {
+              if(classChild.kind === ts.SyntaxKind.Decorator){
+                  classChild.forEachChild((moduleDeclaration: ts.Node) => {
+                    moduleDeclaration.forEachChild((objectLitreal: ts.Node) => {
+                          objectLitreal.forEachChild((property: ts.Node) => {
+                            if(property.getFullText().includes('imports')){
+                                pos = property.end
+                            }
+                          })
+                    })
+                  })
+              }
+        })
+    }
+  })
+
+  return pos
 }
