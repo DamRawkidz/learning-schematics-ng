@@ -26,3 +26,5 @@ npm publish
 ```
 
 That's it!
+
+schematics .:order-wizard --name=test  --path=somepath
