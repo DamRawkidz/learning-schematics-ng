@@ -1,6 +1,7 @@
 
 import {
   apply,
+  filter,
   MergeStrategy,
   mergeWith,
   move,
@@ -25,10 +26,21 @@ export function orderWizard(_options: any): Rule {
       template({
           ...strings,
           ..._options
-        })
+        }),
+        specFilter(_options)
     ])
   
     const templateRule = mergeWith(newTree,MergeStrategy.Default)
     return templateRule(tree, _context);
   };
+}
+
+function specFilter(_options: any): Rule {
+  if(_options.spec == 'false'){
+    return filter(path => {
+      return !path.match(/\.spec\.ts$/) && !path.match(/test\.ts$/)
+    })
+  } 
+
+  return filter(path => !path.match(/test\.ts$/))
 }
